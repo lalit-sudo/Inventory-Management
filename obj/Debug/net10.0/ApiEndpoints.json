@@ -77,7 +77,7 @@
     "Parameters": [
       {
         "Name": "product",
-        "Type": "Inventory_Management.Models.Product",
+        "Type": "InventoryManagement.DTO.Product.AddProductDto",
         "IsRequired": true
       }
     ],

@@ -1,5 +1,6 @@
 ﻿using Inventory_Management.Models;
 using Inventory_Management.Services;
+using InventoryManagement.DTO.Product;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,7 +26,7 @@ namespace InventoryManagement.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddProduct(Product product)
+        public IActionResult AddProduct(AddProductDto product)
         {
             string result = _service.AddProduct(product);
             return Ok(result);
@@ -47,14 +48,14 @@ namespace InventoryManagement.Controllers
         [HttpGet]
         public IActionResult FindByProductId(int productId)
         {
-            Product? product = _service.FindByProductId(productId);
+            ProductDto product = _service.FindByProductId(productId);
             return Ok(product);
         }
 
         [HttpGet]
         public IActionResult SortByPrice(string sorting_order = "asc")
         {
-            List<Product> sorted_Products = _service.SortByPrice(sorting_order);
+            List<ProductDto> sorted_Products = _service.SortByPrice(sorting_order);
             return Ok(sorted_Products);
         }
 
