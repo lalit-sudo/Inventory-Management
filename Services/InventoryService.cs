@@ -1,5 +1,8 @@
 ﻿using Inventory_Management.Models;
+using InventoryManagement.DTO.Product;
+using InventoryManagement.Models;
 using InventoryManagement.Services;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,109 +11,176 @@ namespace Inventory_Management.Services
 {
     public class InventoryService
     {
-        public List<Product> Products { get; set; }
-        private CategoryService _categoryService;
 
-        public InventoryService(CategoryService categoryService)
+        private InventoryManagementContext _context;
+        public InventoryService(InventoryManagementContext context)
         {
-            Products = new List<Product>();
-            _categoryService = categoryService;
+            _context = context;
         }
 
-        public string AddProduct(Product product)
+        //public List<Product> Products { get; set; }
+        //private CategoryService _categoryService;
+
+        //public InventoryService(CategoryService categoryService)
+        //{
+        //    Products = new List<Product>();
+        //    _categoryService = categoryService;
+        //}
+
+        public string AddProduct(AddProductDto dto)
         {
-            foreach(Product prod in Products)
+            try
             {
-                if(prod.ProductId == product.ProductId)
+                Product product = new Product
                 {
-                    return $"Product with product id: {product.ProductId} already exists.";
-                }
+                    ProductName = dto.ProductName,
+                    Price = dto.Price,
+                    Quantity = dto.Quantity,
+                    CategoryId = dto.CategoryId
+                };
+
+                _context.Products.Add(product);
+                _context.SaveChanges();
+                return $"Product with Product Id: {product.ProductId} added successfully";
+            }
+            catch(Exception ex)
+            {
+                return $"Error occured while addding product with error message:- {ex.ToString()}";
             }
             
-            Category? category = _categoryService.FindCategoryById(product.CategoryId);
-            if(category == null)
-            {
-                throw new Exception($"No category with category id: {product.CategoryId} exists");
-            }
-            else
-            {
-                Products.Add(product);
-                return $"Product added successfully with id: {product.ProductId}";
-            }
         }
 
-        public List<Product> DisplayProducts()
+        public List<ProductDto> DisplayProducts()
         {
-            List<Product> lstProducts = new List<Product>();
-            foreach(Product product in Products)
+
+            var lstProducts = _context.Products.Select(p => new ProductDto
             {
-                lstProducts.Add(product);
-            }
+                ProductName = p.ProductName,
+                Price = p.Price,
+                Quantity = p.Quantity,
+                CategoryName = p.Category.CategoryName
+            }).ToList();
+            
             return lstProducts;
         }
 
         public string? RemoveProduct(int productId)
         {
-            for(int i=0; i< Products.Count; i++)
+            var product = _context.Products.FirstOrDefault(p => p.ProductId == productId);
+            try
             {
-                if (Products[i].ProductId == productId)
+                if(product != null)
                 {
-                    Products.Remove(Products[i]);
-                    return $"Product of product id: {productId} has been removed successfully";
+                    _context.Products.Remove(product);
+                    _context.SaveChanges();
+                    return $"Product with Product Id: {productId} removed successfully";
                 }
+                else
+                {
+                    return $"Product with Product Id: {productId} doesn't exist";
+                }
+                
             }
-            return default;
+            catch(Exception ex)
+            {
+                return $"Error occured while removing product with message:- {ex.ToString()}";
+            }
+            
         }
 
         //Fetch Product by price
         public List<Product> FetchProductsByPrice(decimal price)
         {
-            return Products.Where(p => p.Price == price).ToList();
+            return _context.Products.Where(p => p.Price ==  price).ToList();
         }
 
         //Find by ProductId
-        public Product? FindByProductId(int productId)
+        public ProductDto FindByProductId(int productId)
         {
-            return Products.FirstOrDefault(p => p.ProductId == productId);
-        }
 
-        //Sort by price
-        public List<Product> SortByPrice(string sorting_order = "asc")
-        {
-            var sortedList = new List<Product>();
-            if(sorting_order == null)
+            Product? product = _context.Products.FirstOrDefault(p => p.ProductId == productId);
+            ProductDto productDto;
+            if (product != null)
             {
-                Console.WriteLine("sorting order cannot be null");
-            }
-            else if (sorting_order.ToLower().Equals("asc"))
-            {
-                sortedList =  Products.OrderBy(p => p.Price).ToList();
-            }
-            else if (sorting_order.ToLower().Equals("desc"))
-            {
-                sortedList =  Products.OrderByDescending(p => p.Price).ToList();
+               productDto = new ProductDto
+                {
+                    ProductName = product.ProductName,
+                    Price = product.Price,
+                    Quantity = product.Quantity,
+                    CategoryName = product.Category.CategoryName
+                };
             }
             else
             {
-                Console.WriteLine("Please specify valid sorting order: \"asc\" for ascending order and \"desc\" for descending order.");
+                productDto = new ProductDto();
             }
-            return sortedList;
+           
+            return productDto;
+
+        }
+
+        //Sort by price
+        public List<ProductDto> SortByPrice(string sorting_order = "asc")
+        {
+            List<ProductDto> sortedListDto;
+            if (sorting_order.ToLower().Equals("asc"))
+            {
+                sortedListDto = _context.Products.OrderBy(p => p.Price).Select(p => new ProductDto
+                {
+                    ProductName = p.ProductName,
+                    Price = p.Price,
+                    Quantity = p.Quantity,
+                    CategoryName = p.Category.CategoryName
+                }).ToList();
+            }
+            else if (sorting_order.ToLower().Equals("desc"))
+            {
+                sortedListDto = _context.Products.OrderByDescending(p => p.Price).Select(p => new ProductDto
+                {
+                    ProductName = p.ProductName,
+                    Price = p.Price,
+                    Quantity = p.Quantity,
+                    CategoryName = p.Category.CategoryName
+                }).ToList();
+            }
+            else
+            {
+                sortedListDto = new List<ProductDto>();
+            }
+            return sortedListDto;
+
         }
 
         //Display only product names
         public List<string> DisplayProductNames()
         {
-            return Products.Select(p => p.ProductName).ToList();
+            List<string> productNameslst = _context.Products.Select(p => p.ProductName).ToList();
+            return productNameslst;
+            
         }
 
 
         //Reduce Qty by ProductId
         public void ReduceQty(int productId, int qty)
         {
-            Product? product = FindByProductId(productId);
-            if(product != null)
+            Product? product = _context.Products.FirstOrDefault(p => p.ProductId == productId);
+            try
             {
-                product.Quantity -= qty;
+                if(product != null)
+                {
+                    product.Quantity -= qty;
+                    _context.Products.Update(product);
+                    _context.SaveChanges();
+                }
+                else
+                {
+                    Console.WriteLine("No Product with provided exits.");
+                }
+                
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error occured while reducing qty:- {ex.ToString()}");
             }
 
         }
@@ -118,8 +188,8 @@ namespace Inventory_Management.Services
         // Check stock availablity
         public decimal CheckStockAvailablity(int productId, int desiredQty)
         {
-            Product? product = FindByProductId(productId);
-            if(product == null || product.Quantity < desiredQty)
+            Product? product = _context.Products.FirstOrDefault(p => p.ProductId == productId);
+            if (product == null || product.Quantity < desiredQty)
             {
                 return -1;
             }

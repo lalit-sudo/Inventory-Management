@@ -1,5 +1,6 @@
 
 using Inventory_Management.Services;
+using InventoryManagement.Models;
 using InventoryManagement.Services;
 
 namespace InventoryManagement
@@ -14,9 +15,10 @@ namespace InventoryManagement
            
             builder.Services.AddControllers();
 
-            builder.Services.AddSingleton<InventoryService>();
-            builder.Services.AddSingleton<OrderService>();
-            builder.Services.AddSingleton<CategoryService>();
+            builder.Services.AddDbContext<InventoryManagementContext>();
+            builder.Services.AddScoped<InventoryService>();
+            builder.Services.AddScoped<OrderService>();
+            builder.Services.AddScoped<CategoryService>();
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
